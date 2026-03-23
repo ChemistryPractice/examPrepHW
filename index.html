@@ -143,6 +143,16 @@
         <button class="nav-btn" onclick="startAssignment()">Begin Quiz</button>
     </div>
 </div>
+
+<div id="name-overlay" class="overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.9);">
+    <div class="card" style="text-align: center; padding: 2rem;">
+        <h2>Student Identification</h2>
+        <p>Enter your full name to start the assignment:</p>
+        <input type="text" id="student-name" placeholder="First Last" style="padding: 10px; margin: 10px; width: 80%;">
+        <br>
+        <button class="nav-btn" onclick="startAssignment()">Begin Quiz</button>
+    </div>
+</div> 
     
 <div id="main-content">
     <div class="card" id="quiz-container">
@@ -3663,11 +3673,58 @@
         ]
     };
 
-
-let currentQuestions = [];
+    let currentStudent = "";
+    let googleScriptUrl = "https://script.google.com/macros/s/AKfycbwJqvX-Hqn234LuiOcKquRstOoEq0q-dDjKVhtHo0cjhPpPrRDrPnia3FwcVvJ60N9GPg/exec";
+    let currentQuestions = [];
     let currentIdx = 0;
     let answeredQuestions = {}; 
 
+    // --- NEW: Handle the Name Entry ---
+    function startAssignment() {
+        const input = document.getElementById('student-name').value;
+        if (input.trim().length < 2) {
+            alert("Please enter your name to begin.");
+            return;
+        }
+        currentStudent = input;
+        document.getElementById('name-overlay').style.display = 'none';
+    }
+
+    // --- NEW: The Google Sheets Sender ---
+    function sendDataToGoogle() {
+        // Calculate the score one last time
+        let correctCount = 0;
+        for (let i = 0; i < currentQuestions.length; i++) {
+            if (answeredQuestions[i] === currentQuestions[i].correct) correctCount++;
+        }
+
+        const data = {
+            timestamp: new Date().toLocaleString(),
+            name: currentStudent,
+            topic: document.getElementById('topic-title').innerText,
+            score: correctCount,
+            total: currentQuestions.length
+        };
+
+        // Visual feedback for the student
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.innerText = "Sending...";
+        nextBtn.disabled = true;
+
+        fetch(googleScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify(data)
+        }).then(() => {
+            alert(`Assignment Submitted! Score: ${correctCount}/${currentQuestions.length}`);
+            nextBtn.innerText = "Submitted ✅";
+        }).catch(err => {
+            alert("Error submitting. Please take a screenshot of your score!");
+            console.error(err);
+            nextBtn.disabled = false;
+            nextBtn.innerText = "Retry Submit";
+        });
+    }
     // This is your 'selectCategory' function!
     function loadTopic(topic, event) {
         // 1. Toggle Sidebar Active state (added 'if' to prevent error on first load)
@@ -3704,7 +3761,18 @@ let currentQuestions = [];
         expArea.style.display = 'none';
         document.getElementById('progress-text').innerText = `Question ${currentIdx + 1} of ${currentQuestions.length}`;
         document.getElementById('prev-btn').disabled = currentIdx === 0;
-        document.getElementById('next-btn').disabled = currentIdx === currentQuestions.length - 1;
+        const nextBtn = document.getElementById('next-btn');
+    if (currentIdx === currentQuestions.length - 1) {
+        // We are on the last question
+        nextBtn.innerText = "Submit Assignment";
+        nextBtn.disabled = !answeredQuestions[currentIdx]; // Disable until they pick an answer
+        nextBtn.onclick = () => sendDataToGoogle(); // Change the click behavior
+    } else {
+        // We are on questions 1-9
+        nextBtn.innerText = "Next";
+        nextBtn.disabled = false; 
+        nextBtn.onclick = () => changeQuestion(1); // Standard navigation
+    }
 
         if (!q.shuffledOptions) {
             q.shuffledOptions = [...q.options].sort(() => 0.5 - Math.random());
