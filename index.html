@@ -3800,29 +3800,36 @@
         }
     }
 
-    function checkAnswer(choice) {
-        if (answeredQuestions[currentIdx]) return; // Only allow one choice
-        answeredQuestions[currentIdx] = choice;
-        updateScore();
-        renderQuestion();
-    }
-    function updateScore() {
-        if (!currentQuestions) return;
-        let correctCount = 0;
+function checkAnswer(choice) {
+    if (answeredQuestions[currentIdx]) return; 
     
-    // Loop through the answers we've recorded
+    // DEBUG: This helps you see if the strings match in the F12 console
+    console.log("Selected:", choice);
+    console.log("Correct:", currentQuestions[currentIdx].correct);
+
+    answeredQuestions[currentIdx] = choice;
+    updateScore();
+    renderQuestion();
+}
+
+function updateScore() {
+    if (!currentQuestions || currentQuestions.length === 0) return;
+    let correctCount = 0;
+
     for (let i = 0; i < currentQuestions.length; i++) {
         const userAns = answeredQuestions[i];
         const correctAns = currentQuestions[i].correct;
-        
-        if (userAns === correctAns) {
+
+        // Use .trim() to ignore accidental spaces at the end of strings
+        if (userAns && userAns.trim() === correctAns.trim()) {
             correctCount++;
         }
     }
-    
-    // Update the text on the screen
+
     const scoreElement = document.getElementById('score-counter');
-    scoreElement.innerText = `Score: ${correctCount}/${currentQuestions.length}`;
+    if (scoreElement) {
+        scoreElement.innerText = `Score: ${correctCount}/${currentQuestions.length}`;
+    }
 }
 
     function changeQuestion(dir) {
